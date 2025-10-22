@@ -265,21 +265,19 @@ export default function ParallaxScroll() {
       
       ScrollTrigger.refresh();
       console.log('[ParallaxScroll] ScrollTrigger refreshed');
-      
-      // Log scroll position
-      const logScroll = () => {
-        console.log('[Scroll] Position:', window.scrollY, 'Document height:', document.documentElement.scrollHeight);
-      };
-      window.addEventListener('scroll', logScroll, { passive: true });
-      
-      // Cleanup scroll listener
-      return () => {
-        window.removeEventListener('scroll', logScroll);
-      };
     }, containerRef);
+
+    // Add scroll listener outside GSAP context to track scroll events
+    const logScroll = () => {
+      console.log('[Scroll] Position:', window.scrollY, 'Document height:', document.documentElement.scrollHeight);
+      ScrollTrigger.update(); // Force ScrollTrigger to update on scroll
+    };
+    window.addEventListener('scroll', logScroll, { passive: true });
+    console.log('[ParallaxScroll] Scroll listener attached');
 
     return () => {
       console.log('[ParallaxScroll] Cleaning up GSAP context');
+      window.removeEventListener('scroll', logScroll);
       ctx.revert();
     };
   }, []);
