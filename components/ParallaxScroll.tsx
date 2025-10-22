@@ -13,16 +13,27 @@ export default function ParallaxScroll() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !svgRef.current) return;
+    console.log('[ParallaxScroll] useEffect triggered');
+    
+    if (!containerRef.current || !svgRef.current) {
+      console.error('[ParallaxScroll] Refs not ready:', { containerRef: containerRef.current, svgRef: svgRef.current });
+      return;
+    }
+
+    console.log('[ParallaxScroll] Starting GSAP context setup');
 
     const ctx = gsap.context(() => {
       const speed = 100;
       const height = 500;
+      
+      console.log('[ParallaxScroll] GSAP context initialized', { speed, height });
 
       // Initial setup
+      console.log('[ParallaxScroll] Setting initial states');
       gsap.set("#h2-1", { opacity: 0 });
       gsap.set("#bg_grad", { attr: { cy: "-50" } });
       gsap.set("#scene3", { y: height - 40, visibility: "visible" });
+      console.log('[ParallaxScroll] Initial states set');
 
       const mm = gsap.matchMedia();
       mm.add("(max-width: 1922px)", () => {
@@ -30,6 +41,7 @@ export default function ParallaxScroll() {
       });
 
       /* SCENE 1 */
+      console.log('[ParallaxScroll] Creating Scene 1 timeline');
       const scene1 = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -37,8 +49,11 @@ export default function ParallaxScroll() {
           end: "45% 100%",
           scrub: 3,
           invalidateOnRefresh: true,
+          onUpdate: (self) => console.log('[Scene1] Progress:', self.progress.toFixed(3)),
+          onRefresh: () => console.log('[Scene1] Refreshed'),
         },
       });
+      console.log('[ParallaxScroll] Scene 1 timeline created');
 
       // Hills animation
       scene1.to("#h1-1", { y: 3 * speed, x: 1 * speed, scale: 0.9, ease: "power1.in" }, 0);
@@ -77,6 +92,7 @@ export default function ParallaxScroll() {
       );
 
       /* Clouds */
+      console.log('[ParallaxScroll] Creating Clouds timeline');
       const clouds = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -84,6 +100,7 @@ export default function ParallaxScroll() {
           end: "70% 100%",
           scrub: 1,
           invalidateOnRefresh: true,
+          onUpdate: (self) => console.log('[Clouds] Progress:', self.progress.toFixed(3)),
         },
       });
 
@@ -242,10 +259,27 @@ export default function ParallaxScroll() {
       });
 
       // Force refresh after all animations are set up
+      console.log('[ParallaxScroll] All animations created, refreshing ScrollTrigger');
+      const triggers = ScrollTrigger.getAll();
+      console.log('[ParallaxScroll] Total ScrollTriggers:', triggers.length);
+      
       ScrollTrigger.refresh();
+      console.log('[ParallaxScroll] ScrollTrigger refreshed');
+      
+      // Log scroll position
+      const logScroll = () => {
+        console.log('[Scroll] Position:', window.scrollY, 'Document height:', document.documentElement.scrollHeight);
+      };
+      window.addEventListener('scroll', logScroll, { passive: true });
+      
+      // Cleanup scroll listener
+      return () => {
+        window.removeEventListener('scroll', logScroll);
+      };
     }, containerRef);
 
     return () => {
+      console.log('[ParallaxScroll] Cleaning up GSAP context');
       ctx.revert();
     };
   }, []);
