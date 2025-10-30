@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -12,36 +12,39 @@ export default function ParallaxScroll() {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
-    console.log('[ParallaxScroll] useEffect triggered');
-    
+  useLayoutEffect(() => {
+    console.log("[ParallaxScroll] mount");
+
+    // Dev/StrictMode safety: kill anything left around from prior mounts
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+    gsap.killTweensOf("*");
+
     if (!containerRef.current || !svgRef.current) {
-      console.error('[ParallaxScroll] Refs not ready:', { containerRef: containerRef.current, svgRef: svgRef.current });
+      console.error("[ParallaxScroll] refs missing on mount");
       return;
     }
 
-    console.log('[ParallaxScroll] Starting GSAP context setup');
+    // We'll attach a scroll listener just for debug + forcing ScrollTrigger.update()
+    const handleScroll = () => {
+      ScrollTrigger.update();
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     const ctx = gsap.context(() => {
       const speed = 100;
       const height = 500;
-      
-      console.log('[ParallaxScroll] GSAP context initialized', { speed, height });
 
-      // Initial setup
-      console.log('[ParallaxScroll] Setting initial states');
+      // --- INITIAL STATE SETUP ---------------------------------
       gsap.set("#h2-1", { opacity: 0 });
       gsap.set("#bg_grad", { attr: { cy: "-50" } });
       gsap.set("#scene3", { y: height - 40, visibility: "visible" });
-      console.log('[ParallaxScroll] Initial states set');
 
       const mm = gsap.matchMedia();
       mm.add("(max-width: 1922px)", () => {
         gsap.set(["#cloudStart-L", "#cloudStart-R"], { x: 10, opacity: 1 });
       });
 
-      /* SCENE 1 */
-      console.log('[ParallaxScroll] Creating Scene 1 timeline');
+      // --- SCENE 1 ---------------------------------------------
       const scene1 = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -49,13 +52,9 @@ export default function ParallaxScroll() {
           end: "45% 100%",
           scrub: 3,
           invalidateOnRefresh: true,
-          onUpdate: (self) => console.log('[Scene1] Progress:', self.progress.toFixed(3)),
-          onRefresh: () => console.log('[Scene1] Refreshed'),
         },
       });
-      console.log('[ParallaxScroll] Scene 1 timeline created');
 
-      // Hills animation
       scene1.to("#h1-1", { y: 3 * speed, x: 1 * speed, scale: 0.9, ease: "power1.in" }, 0);
       scene1.to("#h1-2", { y: 2.6 * speed, x: -0.6 * speed, ease: "power1.in" }, 0);
       scene1.to("#h1-3", { y: 1.7 * speed, x: 1.2 * speed }, 0.03);
@@ -65,13 +64,14 @@ export default function ParallaxScroll() {
       scene1.to("#h1-7", { y: 5 * speed, x: 1.6 * speed }, 0);
       scene1.to("#h1-8", { y: 3.5 * speed, x: 0.2 * speed }, 0);
       scene1.to("#h1-9", { y: 3.5 * speed, x: -0.2 * speed }, 0);
+
       scene1.to("#cloudsBig-L", { y: 4.5 * speed, x: -0.2 * speed }, 0);
       scene1.to("#cloudsBig-R", { y: 4.5 * speed, x: -0.2 * speed }, 0);
       scene1.to("#cloudStart-L", { x: -300 }, 0);
       scene1.to("#cloudStart-R", { x: 300 }, 0);
       scene1.to("#info", { y: 8 * speed }, 0);
 
-      /* Bird */
+      // --- BIRD ------------------------------------------------
       gsap.fromTo(
         "#bird",
         { opacity: 1 },
@@ -91,8 +91,7 @@ export default function ParallaxScroll() {
         }
       );
 
-      /* Clouds */
-      console.log('[ParallaxScroll] Creating Clouds timeline');
+      // --- CLOUDS ----------------------------------------------
       const clouds = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -100,7 +99,6 @@ export default function ParallaxScroll() {
           end: "70% 100%",
           scrub: 1,
           invalidateOnRefresh: true,
-          onUpdate: (self) => console.log('[Clouds] Progress:', self.progress.toFixed(3)),
         },
       });
 
@@ -109,7 +107,7 @@ export default function ParallaxScroll() {
       clouds.to("#cloud3", { x: -1000 }, 0);
       clouds.to("#cloud4", { x: -700, y: 25 }, 0);
 
-      /* Sun motion Animation */
+      // --- SUN / SKY COLOR SWEEP ------------------------------
       const sun = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -127,7 +125,7 @@ export default function ParallaxScroll() {
       sun.to("#bg_grad stop:nth-child(5)", { attr: { offset: "0.46" } }, 0);
       sun.to("#bg_grad stop:nth-child(6)", { attr: { "stop-color": "#FF9171" } }, 0);
 
-      /* SCENE 2 */
+      // --- SCENE 2 (midground hills rising in) -----------------
       const scene2 = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -145,7 +143,7 @@ export default function ParallaxScroll() {
       scene2.fromTo("#h2-5", { y: 800 }, { y: 0 }, 0.3);
       scene2.fromTo("#h2-6", { y: 900 }, { y: 0 }, 0.3);
 
-      /* Bats */
+      // --- BATS ------------------------------------------------
       gsap.set("#bats", { transformOrigin: "50% 50%" });
       gsap.fromTo(
         "#bats",
@@ -177,7 +175,7 @@ export default function ParallaxScroll() {
         }
       );
 
-      /* Sun increase */
+      // --- SUN INTENSIFIES / SKY GOES PURPLE -------------------
       const sun2 = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -195,7 +193,7 @@ export default function ParallaxScroll() {
       sun2.to("#lg4 stop:nth-child(2)", { attr: { "stop-color": "#261F36" } }, 0);
       sun2.to("#bg_grad stop:nth-child(6)", { attr: { "stop-color": "#45224A" } }, 0);
 
-      /* Transition (from Scene2 to Scene3) */
+      // --- TRANSITION INTO SCENE 3 -----------------------------
       const sceneTransition = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -206,11 +204,15 @@ export default function ParallaxScroll() {
         },
       });
 
-      sceneTransition.to("#h2-1", { y: -height - 100, scale: 1.5, transformOrigin: "50% 50%" }, 0);
+      sceneTransition.to("#h2-1", {
+        y: -height - 100,
+        scale: 1.5,
+        transformOrigin: "50% 50%",
+      }, 0);
       sceneTransition.to("#bg_grad", { attr: { cy: "-80" } }, 0.0);
       sceneTransition.to("#bg2", { y: 0 }, 0);
 
-      /* Scene 3 */
+      // --- SCENE 3 (night sky, stars, text, arrow) -------------
       const scene3 = gsap.timeline({
         scrollTrigger: {
           trigger: ".scrollElement",
@@ -226,13 +228,15 @@ export default function ParallaxScroll() {
       scene3.fromTo("#h3-3", { y: 600 }, { y: -550 }, 0.06);
       scene3.fromTo("#h3-4", { y: 800 }, { y: -550 }, 0.09);
       scene3.fromTo("#h3-5", { y: 1000 }, { y: -550 }, 0.12);
+
       scene3.fromTo("#stars", { opacity: 0 }, { opacity: 0.5, y: -500 }, 0);
       scene3.fromTo("#arrow2", { opacity: 0 }, { opacity: 0.7, y: -710 }, 0.25);
       scene3.fromTo("#text2", { opacity: 0 }, { opacity: 0.7, y: -710 }, 0.3);
+
       scene3.to("#bg2-grad", { attr: { cy: 600 } }, 0);
       scene3.to("#bg2-grad", { attr: { r: 500 } }, 0);
 
-      /* Falling star */
+      // --- FALLING STAR ---------------------------------------
       gsap.set("#fstar", { y: -400 });
       const fstarTL = gsap.timeline({
         scrollTrigger: {
@@ -247,46 +251,48 @@ export default function ParallaxScroll() {
       });
       fstarTL.to("#fstar", { x: -700, y: -250, ease: "power2.out" }, 0);
 
-      // Twinkling stars
+      // --- TWINKLING STARS LOOP (independent of scroll) --------
       const starPaths = [1, 3, 5, 8, 11, 15, 17, 18, 25, 28, 30, 35, 40, 45, 48];
-      const delays = [0.8, 1.8, 1, 1.2, 0.5, 2, 1.1, 1.4, 1.1, 0.9, 1.3, 2, 0.8, 1.8, 1];
+      const delays =     [0.8, 1.8, 1, 1.2, 0.5, 2, 1.1, 1.4, 1.1, 0.9, 1.3, 2, 0.8, 1.8, 1];
       starPaths.forEach((index, i) => {
         gsap.fromTo(
           `#stars path:nth-of-type(${index})`,
           { opacity: 0.3 },
-          { opacity: 1, duration: 0.3, repeat: -1, repeatDelay: delays[i] }
+          {
+            opacity: 1,
+            duration: 0.3,
+            repeat: -1,
+            repeatDelay: delays[i],
+          }
         );
       });
 
-      // Force refresh after all animations are set up
-      console.log('[ParallaxScroll] All animations created, refreshing ScrollTrigger');
-      const triggers = ScrollTrigger.getAll();
-      console.log('[ParallaxScroll] Total ScrollTriggers:', triggers.length);
-      
+      // Final sanity refresh so ScrollTrigger measures AFTER we've mutated DOM
       ScrollTrigger.refresh();
-      console.log('[ParallaxScroll] ScrollTrigger refreshed');
+      console.log("[ParallaxScroll] GSAP timelines created & ScrollTrigger refreshed");
     }, containerRef);
 
-    // Add scroll listener outside GSAP context to track scroll events
-    const logScroll = () => {
-      console.log('[Scroll] Position:', window.scrollY, 'Document height:', document.documentElement.scrollHeight);
-      ScrollTrigger.update(); // Force ScrollTrigger to update on scroll
-    };
-    window.addEventListener('scroll', logScroll, { passive: true });
-    console.log('[ParallaxScroll] Scroll listener attached');
-
     return () => {
-      console.log('[ParallaxScroll] Cleaning up GSAP context');
-      window.removeEventListener('scroll', logScroll);
+      console.log("[ParallaxScroll] cleanup");
+      window.removeEventListener("scroll", handleScroll);
+
+      // clean up gsap/ScrollTrigger
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+      gsap.killTweensOf("*");
+
       ctx.revert();
     };
   }, []);
 
   return (
-    <div ref={containerRef} className="wrapper relative">
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden bg-black text-white"
+    >
+      {/* The visual scene is pinned full-viewport. */}
       <svg
         ref={svgRef}
-        className="parallax fixed top-0 left-0 w-full h-screen z-[3] block"
+        className="fixed top-0 left-0 w-full h-screen z-[3] block"
         viewBox="0 0 750 500"
         preserveAspectRatio="xMidYMax slice"
       >
@@ -408,8 +414,10 @@ export default function ParallaxScroll() {
           <linearGradient id="linear-gradient-4" x1="193.48" y1="508.3" x2="761.05" y2="508.3" xlinkHref="#linear-gradient" />
         </defs>
 
+        {/* Background sky / gradient */}
         <rect id="bg" width="750" height="500" opacity="0.8" fill="url(#bg_grad)" />
 
+        {/* Foreground clouds (scene 1 layer) */}
         <g id="clouds" fill="#fefefe">
           <path
             id="cloud4"
@@ -483,7 +491,14 @@ export default function ParallaxScroll() {
 
         {/* Scene 3 */}
         <g id="scene3" style={{ visibility: "hidden" }}>
-          <rect id="bg2" y="-59.8" width="750" height="612.4" transform="translate(750 492.8) rotate(180)" fill="url(#bg2-grad)" />
+          <rect
+            id="bg2"
+            y="-59.8"
+            width="750"
+            height="612.4"
+            transform="translate(750 492.8) rotate(180)"
+            fill="url(#bg2-grad)"
+          />
 
           <g id="fstar">
             <image
@@ -515,12 +530,22 @@ export default function ParallaxScroll() {
               <polygon
                 id="arrow2"
                 points="395.5 482.2 393.4 484.3 375.2 466.1 357 484.3 354.9 482.2 375.2 461.9 395.5 482.2"
-                style={{ fill: "#fff", stroke: "#231f20", strokeMiterlimit: 10, strokeWidth: ".5px" }}
+                style={{
+                  fill: "#fff",
+                  stroke: "#231f20",
+                  strokeMiterlimit: 10,
+                  strokeWidth: ".5px",
+                }}
               />
               <path
                 id="text2"
                 d="m271.8,526.2c8.4,7,22.4-4.5,8.1-9.8-17.8-5.3-3.8-24,9-16.3l-1.1,3.4c-8.6-5.6-19.3,5-5.8,9.5,18.5,6.4,2.2,25.6-11.3,16.7l1.1-3.5Zm40.8,4.2c-23.8,9.7-23.8-30.5,0-21.6l-1,3.3c-17.5-7.5-16.8,23,.1,15.2l.7,3.2Zm4.9-15.1c0-2.7,0-5.1-.2-7.2h3.7v4.5h.3c1.2-3.5,4.3-5.6,7.6-4.9v4c-10-1.9-6.7,14-7.3,19.6h-4.2v-15.9Zm36.1,4.2c0,16.7-23,15.9-22.6.4-.6-16.2,23.2-16.1,22.6-.4Zm-18.4.2c-.3,11.6,14.4,11.7,14.1,0,.6-11.5-14.6-11.7-14.1,0Zm23.7-22.4h4.2v33.9h-4.2v-33.9Zm11.3,0h4.2v33.9h-4.2v-33.9Zm21.6,2.2c10.5-4.2,28.8,5.4,13.7,14.4h0c16.8,8.4-.2,21.4-13.7,17.3v-31.7Zm4.2,13.2c14.5,2.4,13.8-13.7,0-10.4v10.4Zm0,15.4c15.3,3,15.9-14.6,0-12.3v12.3Zm34.4,3.2l-.3-2.9h-.1c-14.1,12.9-22.3-13.8-.2-11.8,1.4-5.4-7.1-7.5-11.3-4.1l-1-2.8c19.1-8.7,16,9.8,16.8,21.6h-3.8Zm-.6-11.8c-7.5-1.9-14.6,7.4-5.8,9.2,5.7-.1,6.2-5.1,5.8-9.2Zm27.3,10.9c-23.8,9.7-23.8-30.5,0-21.6l-1,3.3c-17.5-7.5-16.8,23,.1,15.2l.7,3.2Zm9.1-11.7h0c1.3-1.9,7.3-8.7,8.8-10.6h5.1l-8.9,9.5,10.2,13.6h-5.1l-8-11.1-2.2,2.4v8.7h-4.2v-33.9h4.2v21.4Z"
-                style={{ fill: "#fff", stroke: "#231f20", strokeMiterlimit: 10, strokeWidth: ".5px" }}
+                style={{
+                  fill: "#fff",
+                  stroke: "#231f20",
+                  strokeMiterlimit: 10,
+                  strokeWidth: ".5px",
+                }}
               />
             </g>
             <polygon
@@ -562,7 +587,7 @@ export default function ParallaxScroll() {
           <path id="h1-9" d="M0,500V492l130-3,150,2,170-12,150,8,150,3V500Z" fill="url(#grad9)" />
         </g>
 
-        {/* Placeholder elements */}
+        {/* Foreground elements / overlays */}
         <g id="cloudsBig-L">
           <ellipse cx="150" cy="150" rx="80" ry="40" fill="#fefefe" opacity="0.6" />
         </g>
@@ -575,18 +600,28 @@ export default function ParallaxScroll() {
         <g id="cloudStart-R" opacity="0">
           <ellipse cx="650" cy="100" rx="60" ry="30" fill="#fefefe" opacity="0.5" />
         </g>
+
         <g id="bird">
           <path d="M375,200 L380,195 L385,200 L380,205 Z" fill="#112129" />
         </g>
+
         <g id="info">
-          <text x="375" y="250" textAnchor="middle" fill="#fff" fontSize="24" fontWeight="bold">
+          <text
+            x="375"
+            y="250"
+            textAnchor="middle"
+            fill="#fff"
+            fontSize="24"
+            fontWeight="bold"
+          >
             Scroll Down
           </text>
         </g>
       </svg>
 
-      <div className="scrollElement absolute top-0 w-full h-[6000px] z-[4]" />
+      {/* This block defines the scrollable distance and acts as ScrollTrigger trigger.
+          It's now IN NORMAL FLOW, not absolute, so ScrollTrigger can measure it immediately. */}
+      <div className="scrollElement h-[6000px] w-full pointer-events-none" />
     </div>
   );
 }
-
